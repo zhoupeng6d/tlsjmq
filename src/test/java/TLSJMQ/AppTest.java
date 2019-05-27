@@ -4,7 +4,11 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+
 import org.zeromq.tlsjmq.TLSServer;
+
+import org.zeromq.tlsjmq.RequestCallback;
 
 
 /**
@@ -12,23 +16,55 @@ import org.zeromq.tlsjmq.TLSServer;
  */
 public class AppTest {
 
-    private TLSServer server;
+	private Worker worker;
+	private class Worker extends Thread
+    {
+		private TLSServer server;
 
-	public void serverRun() {
-		try {
-			server = new TLSServer("TLSv1.2", "tcp://*:5556");
-			server.start();
-		} catch (Exception e) {
-			e.printStackTrace();
+		RequestCallback callback = new RequestCallback() {
+            public String callback(String request)
+            {
+                try {
+					System.out.printf("\033[32;4m" + ">>>>server recv: %s\r\n" + "\033[0m", request);
+
+                    Thread.sleep(100);
+
+					System.out.printf("\033[32;4m" + ">>>>server send: I am your server!\r\n" + "\033[0m");
+					return "I am your server!";
+				}
+                catch(Exception e)
+                {
+                    System.out.println(e.toString());
+                }
+
+                return "";
+            }
+        };
+
+		@Override
+        public void run() {
+			try {
+				server = new TLSServer("tcp://*:5556", callback);
+				server.start();
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+		}
+
+		public void serverStop() {
+			server.stop();
 		}
 	}
 
-	/**
-	 * Should be called in order to gracefully stop the server.
-	 */
-	public void serverStop() {
-		server.stop();
-    }
+	public void serverRun() {
+		worker = new Worker();
+        worker.start();
+	}
+
+	public void serverStop() throws Exception {
+		worker.serverStop();
+		worker.sleep(2000);
+	}
 
     /**
      * Rigorous Test.
@@ -37,11 +73,13 @@ public class AppTest {
     public void testApp() throws Exception {
 		serverRun();
 
-		TLSClient client = new TLSClient("TLSv1.2", "tcp://localhost:5556");
+		Thread.sleep(1000);
+		TLSClient client = new TLSClient("tcp://localhost:5556");
 		client.connect();
 		client.write("Hello! I am a client!");
-		client.read();
-		client.shutdown();
+		System.out.printf("\033[31;4m" + ">>>>client send: Hello! I am a client\r\n" + "\033[0m");
+		System.out.printf("\033[31;4m" + ">>>>client recv: %s\r\n" + "\033[0m", client.read());
+	    client.shutdown();
 
 		serverStop();
 

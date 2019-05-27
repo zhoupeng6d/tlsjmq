@@ -6,11 +6,14 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Poller;
 import org.zeromq.ZMQ.Socket;
 
+import org.apache.log4j.Logger;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 
 
 public class JMQChannel {
+    private final Logger log = Logger.getLogger(getClass());
+
     public enum Mode {
         SERVER,
         CLIENT,
@@ -18,8 +21,6 @@ public class JMQChannel {
 
     private ZMQ.Socket socket;
     private Mode       mode;
-    private Boolean    bRead = false;
-    private Boolean    bWrite = false;
 
     public JMQChannel(ZMQ.Socket socket, Mode mode)
     {
@@ -27,34 +28,49 @@ public class JMQChannel {
         this.mode   = mode;
     }
 
+    public String accept()
+    {
+        String id = "";
+        String id_tmp;
+        do {
+            id_tmp = socket.recvStr(0);
+
+                if (id_tmp.length() > 0) {
+                    id = id_tmp;
+                }
+
+            socket.sendMore(id_tmp);
+        } while(id_tmp.length() > 0);
+
+        return id;
+    }
+
     public int read(ByteBuffer dst)
     {
-        if (bRead)
-        {
-            socket.send("");
-        }
-
-        bWrite = false;
-        bRead = true;
         return socket.recvByteBuffer(dst, 0);
     }
 
-    public int write(ByteBuffer src)
+    public byte[] readb()
     {
-        if (bWrite)
-        {
-            String data;
-            data = socket.recvStr(0);
-        }
-        bRead = false;
-        bWrite = true;
-        int ret = socket.sendByteBuffer(src, 0);
+        return socket.recv();
+    }
+
+    public int write(ByteBuffer src, boolean sendMore)
+    {
+        int ret = socket.sendByteBuffer(src, sendMore?zmq.ZMQ.ZMQ_SNDMORE:0);
         src.position(src.limit());
         return ret;
     }
 
-    public void close()
+    public void read0()
     {
+        String data;
+        log.debug("recv 0");
+        data = socket.recvStr(0);
+    }
 
+    public void write0()
+    {
+        socket.send("");
     }
 }
