@@ -225,30 +225,35 @@ public class TLSWrapper {
     private boolean handshakeUnwrap() throws IOException
     {
         SSLEngineResult result;
-        try {
-            result = engine.unwrap(peerNetData, peerAppData);
-            peerNetData.compact();
-            handshakeStatus = result.getHandshakeStatus();
-        } catch (SSLException sslException) {
-            log.error(tlsMode + ": " + "A problem was encountered while processing the data that caused the SSLEngine to abort. Will try to properly close connection...");
-            engine.closeOutbound();
-            handshakeStatus = engine.getHandshakeStatus();
-            //break;
-            return false;
-        }
-        log.debug(tlsMode+": "+"unwrap status:"+result.getStatus());
-        switch (result.getStatus()) {
-            case OK:
+        do {
+            log.debug(tlsMode+": "+"handshakestatus:"+engine.getHandshakeStatus());
+            try {
+                result = engine.unwrap(peerNetData, peerAppData);
+                if (!peerNetData.hasRemaining())
+                    peerNetData.position(peerNetData.limit());
+                handshakeStatus = result.getHandshakeStatus();
+            } catch (SSLException sslException) {
+                log.error(tlsMode + ": " + "A problem was encountered while processing the data that caused the SSLEngine to abort. Will try to properly close connection...");
+                engine.closeOutbound();
+                handshakeStatus = engine.getHandshakeStatus();
+                //break;
+                return false;
+            }
+            log.debug(tlsMode+": "+"unwrap status:"+result.getStatus());
+            switch (result.getStatus()) {
+                case OK:
                 break;
-            case BUFFER_OVERFLOW:
+                case BUFFER_OVERFLOW:
                 // Will occur when peerAppData's capacity is smaller than the data derived from peerNetData's unwrap.
                 peerAppData = enlargeApplicationBuffer(engine, peerAppData);
-                break;
-            case BUFFER_UNDERFLOW:
+                return handshakeUnwrap();
+                //break;
+                case BUFFER_UNDERFLOW:
                 // Will occur either when no data was read from the peer or when the peerNetData buffer was too small to hold all peer's data.
                 peerNetData = handleBufferUnderflow(engine, peerNetData);
-                break;
-            case CLOSED:
+                return handshakeUnwrap();
+                //break;
+                case CLOSED:
                 tlsStatus = TLSStatus.CLOSED;
                 if (engine.isOutboundDone()) {
                     return false;
@@ -257,9 +262,18 @@ public class TLSWrapper {
                     handshakeStatus = engine.getHandshakeStatus();
                     break;
                 }
-            default:
+                default:
                 throw new IllegalStateException("Invalid SSL status: " + result.getStatus());
-        }
+            }
+
+            while (HandshakeStatus.NEED_TASK == handshakeStatus)
+            {
+                handshakeTask();
+            }
+
+            log.debug(tlsMode + ": " + "peerNetData remaining:" + peerNetData.remaining() + " position:"+ peerNetData.position());
+        } while (peerNetData.hasRemaining());
+
         return true;
     }
 
@@ -291,7 +305,8 @@ public class TLSWrapper {
                 // Since myNetData is set to session's packet size we should not get to this point because SSLEngine is supposed
                 // to produce messages smaller or equal to that, but a general handling would be the following:
                 myNetData = enlargePacketBuffer(engine, myNetData);
-                break;
+                return handshakeWrap();
+                //break;
             case BUFFER_UNDERFLOW:
                 throw new SSLException("Buffer underflow occured after a wrap. I don't think we should ever get here.");
             case CLOSED:
@@ -374,7 +389,7 @@ public class TLSWrapper {
                 byte[] recvNetData = jmqChannel.readb();
                 readcnt = 1;
                 writecnt = 0;
-                if (recvNetData.length > 0)
+                if (recvNetData.length >= 0)
                 {
                     peerNetData = ByteBuffer.allocate(recvNetData.length);
                 }
@@ -386,10 +401,6 @@ public class TLSWrapper {
             }
 
             log.debug(tlsMode+": "+"status:" + handshakeStatus);
-            while (HandshakeStatus.NEED_TASK == handshakeStatus)
-            {
-                handshakeTask();
-            }
 
             if (HandshakeStatus.NEED_WRAP == handshakeStatus)
             {
@@ -464,8 +475,10 @@ public class TLSWrapper {
     protected ByteBuffer enlargeBuffer(ByteBuffer buffer, int sessionProposedCapacity) {
         if (sessionProposedCapacity > buffer.capacity()) {
             buffer = ByteBuffer.allocate(sessionProposedCapacity);
+            log.debug("buffer size:"+sessionProposedCapacity);
         } else {
             buffer = ByteBuffer.allocate(buffer.capacity() * 2);
+            log.debug("buffer size:"+buffer.capacity() * 2);
         }
         return buffer;
     }

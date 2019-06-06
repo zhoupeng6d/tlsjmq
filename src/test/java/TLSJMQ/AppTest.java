@@ -73,13 +73,19 @@ public class AppTest {
     public void testApp() throws Exception {
 		serverRun();
 
+
+
 		Thread.sleep(1000);
 		TLSClient client = new TLSClient("tcp://localhost:5556");
 		client.connect();
 		client.write("Hello! I am a client!");
 		System.out.printf("\033[31;4m" + ">>>>client send: Hello! I am a client\r\n" + "\033[0m");
 		System.out.printf("\033[31;4m" + ">>>>client recv: %s\r\n" + "\033[0m", client.read());
-	    client.shutdown();
+		client.shutdown();
+
+
+
+		Thread.sleep(20000);
 
 		serverStop();
 
