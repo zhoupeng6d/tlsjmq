@@ -45,6 +45,7 @@ public class AppTest {
 			try {
 				server = new TLSServer(TLSWrapper.createKeyManagers("./src/main/resources/server.jks", "123456", "123456"),
 									   TLSWrapper.createTrustManagers("./src/main/resources/ca.jks", "123456"),
+									   true,
 									   "tcp://*:5556", callback);
 				server.start();
 			} catch (Exception e){
@@ -78,11 +79,13 @@ public class AppTest {
 		TLSClient client = new TLSClient(TLSWrapper.createKeyManagers("./src/main/resources/client.jks", "123456", "123456"),
 										 TLSWrapper.createTrustManagers("./src/main/resources/ca.jks", "123456"),
 									     "tcp://localhost:5556");
-		client.connect();
-		client.write("Hello! I am a client!");
-		System.out.printf("\033[31;4m" + ">>>>client send: Hello! I am a client\r\n" + "\033[0m");
-		System.out.printf("\033[31;4m" + ">>>>client recv: %s\r\n" + "\033[0m", client.read());
-		client.shutdown();
+		if (client.connect())
+		{
+			client.write("Hello! I am a client!");
+			System.out.printf("\033[31;4m" + ">>>>client send: Hello! I am a client\r\n" + "\033[0m");
+			System.out.printf("\033[31;4m" + ">>>>client recv: %s\r\n" + "\033[0m", client.read());
+			client.shutdown();
+		}
 
 		Thread.sleep(20000);
 

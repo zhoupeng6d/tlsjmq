@@ -38,12 +38,14 @@ public class TLSServer {
     private RequestCallback requestCallback;
     private javax.net.ssl.KeyManager[] km;
     private javax.net.ssl.TrustManager[] tm;
+    private boolean                      verifyPeer;
 
 
-    public TLSServer(javax.net.ssl.KeyManager[] km, javax.net.ssl.TrustManager[] tm, String addr, RequestCallback requestCallback) throws IOException {
+    public TLSServer(javax.net.ssl.KeyManager[] km, javax.net.ssl.TrustManager[] tm, boolean verifyPeer, String addr, RequestCallback requestCallback) throws IOException {
 
-        this.km = km;
-        this.tm = tm;
+        this.km         = km;
+        this.tm         = tm;
+        this.verifyPeer = verifyPeer;
 
         this.requestCallback = requestCallback;
 
@@ -83,7 +85,7 @@ public class TLSServer {
                                     new SecureRandom(),
                                     jmqChannel,
                                     JMQChannel.Mode.SERVER,
-                                    true);
+                                    verifyPeer);
                 clientMap.put(key, tlsWrapper);
             }
 
