@@ -1,14 +1,13 @@
 package org.zeromq.tlsjmq;
 
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 import java.io.IOException;
 
 import org.zeromq.tlsjmq.TLSServer;
-
 import org.zeromq.tlsjmq.RequestCallback;
+import org.zeromq.tlsjmq.TLSWrapper;
 
 
 /**
@@ -44,7 +43,9 @@ public class AppTest {
 		@Override
         public void run() {
 			try {
-				server = new TLSServer("tcp://*:5556", callback);
+				server = new TLSServer(TLSWrapper.createKeyManagers("./src/main/resources/server.jks", "123456", "123456"),
+									   TLSWrapper.createTrustManagers("./src/main/resources/ca.jks", "123456"),
+									   "tcp://*:5556", callback);
 				server.start();
 			} catch (Exception e){
 				e.printStackTrace();
@@ -73,17 +74,15 @@ public class AppTest {
     public void testApp() throws Exception {
 		serverRun();
 
-
-
 		Thread.sleep(1000);
-		TLSClient client = new TLSClient("tcp://localhost:5556");
+		TLSClient client = new TLSClient(TLSWrapper.createKeyManagers("./src/main/resources/client.jks", "123456", "123456"),
+										 TLSWrapper.createTrustManagers("./src/main/resources/ca.jks", "123456"),
+									     "tcp://localhost:5556");
 		client.connect();
 		client.write("Hello! I am a client!");
 		System.out.printf("\033[31;4m" + ">>>>client send: Hello! I am a client\r\n" + "\033[0m");
 		System.out.printf("\033[31;4m" + ">>>>client recv: %s\r\n" + "\033[0m", client.read());
 		client.shutdown();
-
-
 
 		Thread.sleep(20000);
 

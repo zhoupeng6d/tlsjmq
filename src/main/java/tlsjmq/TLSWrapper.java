@@ -219,7 +219,8 @@ public class TLSWrapper {
     public boolean isHandshakeDone()
     {
         log.debug(tlsMode+": "+"handshakestatus:"+engine.getHandshakeStatus());
-        return (engine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED) || (engine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING);
+        return (tlsStatus == TLSStatus.CONNECTED);
+        //return (engine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED) || (engine.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING);
     }
 
     private boolean handshakeUnwrap() throws IOException

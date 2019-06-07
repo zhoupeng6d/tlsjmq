@@ -36,8 +36,15 @@ public class TLSServer {
     private ZContext        jmqContext;
     private JMQChannel      jmqChannel;
     private RequestCallback requestCallback;
+    private javax.net.ssl.KeyManager[] km;
+    private javax.net.ssl.TrustManager[] tm;
 
-    public TLSServer(String addr, RequestCallback requestCallback) throws IOException {
+
+    public TLSServer(javax.net.ssl.KeyManager[] km, javax.net.ssl.TrustManager[] tm, String addr, RequestCallback requestCallback) throws IOException {
+
+        this.km = km;
+        this.tm = tm;
+
         this.requestCallback = requestCallback;
 
         jmqContext = new ZContext();
@@ -71,14 +78,13 @@ public class TLSServer {
             {
                 log.debug("clientMap new");
                 tlsWrapper = new TLSWrapper("TLSv1.2",
-                                    TLSWrapper.createKeyManagers("./src/main/resources/server.jks", "123456", "123456"),
-                                    TLSWrapper.createTrustManagers("./src/main/resources/ca.jks", "123456"),
+                                    km,
+                                    tm,
                                     new SecureRandom(),
                                     jmqChannel,
                                     JMQChannel.Mode.SERVER,
                                     true);
                 clientMap.put(key, tlsWrapper);
-
             }
 
             if (!tlsWrapper.isHandshakeDone())

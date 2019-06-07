@@ -28,9 +28,11 @@ public class TLSClient {
     private ZContext     jmqContext;
     private JMQChannel   jmqChannel;
     private TLSWrapper   tlsWrapper;
+    private javax.net.ssl.KeyManager[] km;
+    private javax.net.ssl.TrustManager[] tm;
 
 
-    public TLSClient(String addr) throws IOException, Exception  {
+    public TLSClient(javax.net.ssl.KeyManager[] km, javax.net.ssl.TrustManager[] tm, String addr) throws IOException, Exception  {
 
         this.jmqContext = new ZContext();
         //System.out.println("I: connecting to server");
@@ -42,8 +44,8 @@ public class TLSClient {
         this.jmqChannel = new JMQChannel(client, JMQChannel.Mode.CLIENT);
 
         tlsWrapper = new TLSWrapper("TLSv1.2",
-                         TLSWrapper.createKeyManagers("./src/main/resources/client.jks", "123456", "123456"),
-                         TLSWrapper.createTrustManagers("./src/main/resources/ca.jks", "123456"),
+                         km,
+                         tm,
                          new SecureRandom(),
                          jmqChannel,
                          JMQChannel.Mode.CLIENT,
