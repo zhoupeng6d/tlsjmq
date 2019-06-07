@@ -78,7 +78,8 @@ public class AppTest {
 		Thread.sleep(1000);
 		TLSClient client = new TLSClient(TLSWrapper.createKeyManagers("./src/main/resources/client.jks", "123456", "123456"),
 										 TLSWrapper.createTrustManagers("./src/main/resources/ca.jks", "123456"),
-									     "tcp://localhost:5556");
+										 "tcp://localhost:5556",
+										 "client2");
 		if (client.connect())
 		{
 			client.write("Hello! I am a client!");

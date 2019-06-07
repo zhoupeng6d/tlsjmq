@@ -32,13 +32,13 @@ public class TLSClient {
     private javax.net.ssl.TrustManager[] tm;
 
 
-    public TLSClient(javax.net.ssl.KeyManager[] km, javax.net.ssl.TrustManager[] tm, String addr) throws IOException, Exception  {
+    public TLSClient(javax.net.ssl.KeyManager[] km, javax.net.ssl.TrustManager[] tm, String addr, String clientID) throws IOException, Exception  {
 
         this.jmqContext = new ZContext();
         //System.out.println("I: connecting to server");
         Socket client = this.jmqContext.createSocket(SocketType.REQ);
         assert (client != null);
-        client.setIdentity("client1".getBytes());
+        client.setIdentity(clientID.getBytes());
         client.connect(addr);
 
         this.jmqChannel = new JMQChannel(client, JMQChannel.Mode.CLIENT);
